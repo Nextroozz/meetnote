@@ -111,4 +111,8 @@ git ls-files .env.local
 
 ## Licence
 
-Projet prive - usage interne.
+Ce projet est distribue sous la licence `MeetNote Non-Commercial License (MNCL) v1.0`.
+
+- Utilisation, modification et partage autorises pour un usage non commercial.
+- Vente, revente, usage SaaS payant et toute commercialisation interdits sans autorisation ecrite.
+- Voir le fichier `LICENSE` pour le texte complet.
