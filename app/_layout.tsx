@@ -1,59 +1,74 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { useRouter, useSegments } from 'expo-router';
+import { Session } from '@supabase/supabase-js';
+import { View, ActivityIndicator } from 'react-native';
+import { supabase } from '@/lib/supabase';
+import { Colors } from '@/constants/Colors';
 
-import { useColorScheme } from '@/components/useColorScheme';
-
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+export { ErrorBoundary } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+function AuthGuard({ session, loading }: { session: Session | null; loading: boolean }) {
+  const segments = useSegments();
+  const router = useRouter();
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
+    if (loading) return;
+    const inAuthGroup = segments[0] === '(auth)';
+    if (!session && !inAuthGroup) {
+      router.replace('/(auth)/login');
+    } else if (session && inAuthGroup) {
+      router.replace('/(tabs)');
     }
-  }, [loaded]);
+  }, [session, loading, segments]);
 
-  if (!loaded) {
-    return null;
-  }
-
-  return <RootLayoutNav />;
+  return null;
 }
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
+      SplashScreen.hideAsync();
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator color={Colors.accent} />
+        <StatusBar style="light" />
+      </View>
+    );
+  }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+    <>
+      <StatusBar style="light" />
+      <AuthGuard session={session} loading={loading} />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.background } }}>
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="meeting/[id]" options={{ presentation: 'modal' }} />
       </Stack>
-    </ThemeProvider>
+    </>
   );
 }
