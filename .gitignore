@@ -32,6 +32,29 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+.env.*
+!.env.example
+
+# secret files / credentials
+*.keystore
+*.pfx
+*.csr
+*.crt
+*.cer
+*.der
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+
+# logs and reports
+*.log
+coverage/
+
+# local editor/system
+.idea/
+.fleet/
 
 # typescript
 *.tsbuildinfo
@@ -39,3 +62,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Supabase local metadata/temp
+supabase/.temp/
